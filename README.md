@@ -11,14 +11,14 @@ This repository includes a simple reference implementation (in Python3), and pro
 - Example credential comprising a random user health token and a valid 512-bit ECDSA signature:
 
 <center>
-<img src="token_qr.png" alt="Example DPHT QR code" width="30%"/>
+<img src="token_qr.png" alt="Example DPHT QR code" width="200px"/>
 </center>
 <br>
 
 - Example simulation for a range of 1 to 200 users, iterated 50 times:
 
 <center>
-<img src="DPHT_simulation.png" alt="Example DPHT simulation" width="70%"/>
+<img src="DPHT_simulation.png" alt="Example DPHT simulation" width="450px"/>
 </center>
 <br>
 
