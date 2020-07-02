@@ -7,6 +7,7 @@ The latest DPHT paper can be found at [arXiv](https://arxiv.org/abs/2006.14329).
 ## Proof of concept implementation
 
 This repository includes a simple reference implementation (in Python3), and proof-of-concept, of the DPHT proposal. In particular, we currently demonstrate the feasibility of our health tokens and evaluate the error introduced by differential privacy for different values of epsilon. To generate an example health token run [Generate_QR_Token.py](Generate_QR_Token.py), to verify run [Verify_QR_Token.py](Verify_QR_Token.py). Credentials, which can be displayed as standard QR codes, are signed using ECDSA over brainpoolP512r1 and comprise a randomised user token. Credentials are completely self-contained and can be verified offline, without interacting with the signer. Revocation is based on distributing revoked CIDs to verifiers.
+The associated error analysis is generated when [Generate_QR_Token.py](Generate_QR_Token.py) is run. The value of epsilon can, of course, be altered.
 
 - Example credential comprising a random user health token and a valid 512-bit ECDSA signature:
 
