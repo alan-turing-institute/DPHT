@@ -1,7 +1,7 @@
 # Differentially Private Health Tokens (DPHT)
 
 ## Paper
-The latest DPHT paper can be found at [DPHT.pdf](DPHT.pdf). The authors welcome feedback and may be contacted by email using the details in the paper or by clicking the following [link](mailto:dbutler@turing.ac.uk;chicks@turing.ac.uk;jbell@turing.ac.uk;cm@warwick.ac.uk;jon.crowcroft@cl.cam.ac.uk?subject=[DPHT]).
+The latest DPHT paper can be found at [arXiv](https://arxiv.org/abs/2006.14329). The authors welcome feedback and may be contacted by email using the details in the paper or by clicking the following [link](mailto:dbutler@turing.ac.uk;chicks@turing.ac.uk;jbell@turing.ac.uk;cm@warwick.ac.uk;jon.crowcroft@cl.cam.ac.uk?subject=[DPHT]).
 
 
 ## Proof of concept implementation
