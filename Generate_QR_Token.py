@@ -14,6 +14,7 @@ import base64
 import OpenSSL
 import numpy as np
 from OpenSSL import crypto
+import math
 from math import sqrt, pi, exp
 
 
@@ -43,61 +44,26 @@ class TokenData:
 
         return self.cert_bytes + cert_sign_len + cert_sign_bytes
 
+# return the token value based on the test_result input. Test result is 0 or 1.
+def output_token(test_result, epsilon):
 
-# Simulate issuing nUsers health tokens from a prior distribution priorP.
-# The number of risk classes k is derived from len(priorP)
-# Returns the real user antibody statuses, the randomised health tokens and
-# the absolute error between the two.
-def simulate_DPHT(nUsers, priorP=[1./50, 49./50], silent=True):
+    output_correct = (exp(epsilon) - 1) / (exp(epsilon) + 2 - 1)
 
-    k = len(priorP)
-    antibody_status = np.random.choice(list(range(k)), size=(nUsers,), p=priorP)
-    token_bits = np.zeros(nUsers)
+    # Flip biased first coin
+    coin0 = np.random.choice([0,1], p = [1 - output_correct, output_correct])
+    if coin0 == 1:
+        # Let token contain real antibody status
+        token = test_result
+    else:
+        # Flip Second Coin
+        token = np.random.choice([0,1])
 
-    for user in range(nUsers):
-        # H flips bit for each user
-        h_bit_0 = np.random.choice([0,1])
-        if h_bit_0 == 1:
-            # Let certificate contain real antibody status
-            token_bits[user] = antibody_status[user]
-        else:
-            # Flip Second Coin
-            h_bit_1 = np.random.choice([0,1])
-            if h_bit_1 == 1:
-                # Randomise antibody status
-                token_bits[user] = 1
-            else:
-                # Certificate indicate non-antibody
-                pass
-
-    token_bits = token_bits.astype(int)
-
-    # E(X) = 2(x - 1/4) where x is the fraction of people who hold X on their health token.
-    x = np.count_nonzero(token_bits)/float(token_bits.size)
-    e_x = abs(2*(x-0.25))
-    real_x = np.count_nonzero(antibody_status)/float(antibody_status.size)
-    error = abs(real_x-e_x)
-
-    if not silent:
-        print('Actual antibody bits: {}'.format(antibody_status))
-        print('Real antibody rate: {}'.format(real_x))
-        print('DP antibody bits: {}'.format(token_bits))
-        print('E[X] = {}'.format(e_x))
-        print('error = {}'.format(error))
-
-    return antibody_status, token_bits, error
+    return np.array(token)
 
 
-def main():
+def generate_signed_token(test_result, epsilon):
     signer_pkey_filename = 'OpenSSLKeys/sign_key.pem'
     qr_code_filename = 'token_qr.png'
-    simulation_data_filename = 'DPHT_simulation.png'
-
-    # Simulation parameters
-    max_users = 200
-    nIterations = 50
-    errors = []
-    priorP = [1./50, 49./50]
 
     # Define QR code specification
     qr = qrcode.QRCode(
@@ -108,8 +74,8 @@ def main():
     )
 
     # Create one user token
-    _, user_token_value, _ = simulate_DPHT(1, priorP)
-    user_token = TokenData(str(user_token_value[0]))
+    user_token_value = output_token(test_result, epsilon)
+    user_token = TokenData(str(user_token_value))
 
     # Load private key for signing user data
     key_file = open(signer_pkey_filename, "r")
@@ -128,7 +94,7 @@ def main():
     try:
         qr.make(fit=True)
     except qrcode.exceptions.DataOverflowError:
-        print('User data too big for QR code. Please optimise image.')
+        print('User data too big for QR code.')
         exit()
 
     qr_img = qr.make_image(fill_color="black", back_color="white")
@@ -138,6 +104,49 @@ def main():
     print('Example user health token QR code output to {}'.format(qr_code_filename))
     print('Done.')
 
+    return
+
+# Simulate issuing nUsers health tokens from a prior distribution priorP.
+# The number of risk classes k is derived from len(priorP)
+# Returns the real user antibody statuses, the randomised health tokens and
+# the absolute error between the two.
+def simulate_DPHT(nUsers, epsilon, priorP, silent=True):
+
+    antibody_status = np.random.choice([0,1], size=(nUsers,), p=priorP)
+    token_bits = np.zeros(nUsers)
+
+    tokens = np.zeros(nUsers)
+
+    for user in range(nUsers):
+            # create token for each user
+        true_status = antibody_status[user]
+        token = output_token(true_status, epsilon)
+        tokens[user] = token
+
+    token_bits = tokens.astype(int)
+
+    # E(X) = 2(x - 1/4) where x is the fraction of people who hold X on their health token.
+    x = np.count_nonzero(token_bits)/float(token_bits.size)
+    e_x = abs(2*(x-0.25))
+    real_x = np.count_nonzero(antibody_status)/float(antibody_status.size)
+    error = abs(real_x-e_x)
+
+    if not silent:
+        print('Actual antibody bits: {}'.format(antibody_status))
+        print('Real antibody rate: {}'.format(real_x))
+        print('DP antibody bits: {}'.format(token_bits))
+        print('E[X] = {}'.format(e_x))
+        print('error = {}'.format(error))
+
+    return error
+
+
+def plot_errors(epsilon, priorP, max_users = 200, nIterations = 50):
+
+    simulation_data_filename = 'DPHT_simulation.png'
+
+    errors = []
+
     # Simulate between 1 and max_users, nIterations many times
     print('Simulating between 1 and {} users, {} times per batch'.format(max_users, nIterations))
     print('Running...')
@@ -145,7 +154,7 @@ def main():
     for nUsers in range(1, max_users):
         nUsers_error = 0
         for iter in range(nIterations):
-            _, _, nUsers_error_temp = simulate_DPHT(nUsers, priorP)
+            nUsers_error_temp = simulate_DPHT(nUsers, epsilon, priorP)
             nUsers_error += nUsers_error_temp
         nUsers_error /= float(nIterations)
         errors += [nUsers_error]
@@ -153,7 +162,7 @@ def main():
     fig, ax = plt.subplots()
     ax.plot(errors, label = 'Experimental Error')
     ax.set(xlabel='Number of users E[X] computed over', ylabel = 'Average error',
-            ylim=[0,0.5], xlim=[1,max_users], title = 'Average error computing E[X] using DP')
+            ylim=[0,0.5], xlim=[1,max_users], title = f'Average error computing E[X] for the Health Token value, for epsilon = {round(epsilon, 3)}')
 
     terrors=[sqrt(3/(2*pi*n)) for n in range(1,max_users)]
     ax.plot(terrors, color='red', label = 'Estimated Error')
@@ -162,4 +171,14 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+
+    # set the value of epsilon and the real test_result value
+    epsilon = math.log(3)
+    test_result = True
+
+    generate_signed_token(test_result, epsilon)
+
+    # set the prior distributon of antibodies
+    priorP = [1./50, 49./50]
+
+    plot_errors(epsilon, priorP, max_users = 200, nIterations = 50)
