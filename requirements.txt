@@ -1,0 +1,9 @@
+image
+qrcode
+matplotlib
+pyOpenSSL
+opencv-python
+zbar-py
+pyzbar
+zbarlight
+numpy
